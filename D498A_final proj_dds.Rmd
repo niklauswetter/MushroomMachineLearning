@@ -1,0 +1,704 @@
+---
+title: "D498A_final proj_v1"
+author: "Damon Shorty"
+date: "4/4/2023"
+output: pdf_document
+---
+
+# libraries 
+```{r}
+# library(corrplot)
+library(ggplot2)
+# library(MASS) #for LDA, QDA
+library(class) #for KNN
+library(e1071) #for Naive Bayes, SVM
+library(leaps) #for Regularization, regsubsets
+library(tree)
+library(randomForest)
+```
+
+
+
+
+# read data  
+```{r}
+# primary <- read.csv(file = 'primary_data.csv')
+mushrooms <- read.csv(file = 'secondary_data2.csv',stringsAsFactors = TRUE)
+
+```
+
+```{r}
+# str(mushrooms)
+```
+
+
+# check data  
+```{r}
+#check for NAs
+sum(is.na(mushrooms))
+```
+
+
+# clean up data 
+```{r}
+#edit 1
+levels(mushrooms$cap.surface)[1] <- "v"
+
+#edit 2
+levels(mushrooms$gill.attachment)[1] <- "v"
+ 
+#edit 3
+levels(mushrooms$gill.spacing)[1] <- "v"
+ 
+#edit 4
+levels(mushrooms$stem.root)[1] <- "v"
+ 
+#edit 5
+levels(mushrooms$stem.surface)[1] <- "v"
+ 
+#edit 6
+levels(mushrooms$veil.type)[1] <- "p"
+ 
+#edit 7
+levels(mushrooms$veil.color)[1] <- "v"
+
+#edit 8
+levels(mushrooms$ring.type)[1] <- "v"
+
+#edit 9
+levels(mushrooms$spore.print.color)[1] <- "v"
+
+```
+
+
+
+
+```{r}
+# str(mushrooms) #for check only
+```
+
+
+
+# Summary Statistics   
+
+```{r}
+summary(mushrooms)
+```
+
+```{r}
+# head(mushrooms)
+```
+
+
+
+
+
+## quantiative vars. 
+
+```{r}
+pairs(mushrooms[,c(1,2,10,11)])
+```
+
+
+
+
+```{r}
+round(cor(mushrooms[,c(2,10,11)]),3)
+```
+
+
+
+
+
+
+## qualitative vars. 
+
+```{r}
+ggplot(mushrooms,aes(x=cap.surface,y=cap.shape,col=class)) +
+  geom_jitter() +
+  ggtitle("Cap Surface vs. Cap Shape") +
+  xlab("Cap Surface Type") +
+  ylab("Cap Shape Type") +
+  theme(plot.title = element_text(face="bold")) +
+  scale_color_discrete(labels=c('Edible','Poisonous')) +
+  scale_y_discrete(labels=c("bell","conical","flat","others","spherical","sunken","convex")) +
+  scale_x_discrete(labels=c("unknown","unknown","fleshy","grooves","shiny","fibrous","silky","leathery","smooth","sticky","wrinkled","scaly")) +
+  theme(axis.text.x = element_text(angle = 90,hjust=1,vjust=0))
+
+
+ggplot(mushrooms,aes(x=cap.color,y=cap.shape,col=class)) +
+  geom_jitter() +
+  ggtitle("Cap Color vs. Cap Shape") +
+  xlab("Cap Color") +
+  ylab("Cap Shape Type") +
+  theme(plot.title = element_text(face="bold")) +
+  scale_color_discrete(labels=c('Edible','Poisonous')) +
+  scale_y_discrete(labels=c("bell","conical","flat","others","spherical","sunken","convex")) +
+  scale_x_discrete(labels=c("buff","red","gray","black","blue","brown","orange","pink","green","purple","white","yellow")) +
+  theme(axis.text.x = element_text(angle = 90,hjust=1,vjust=0))
+
+
+ggplot(mushrooms,aes(x=does.bruise.or.bleed,y=cap.shape,col=class)) +
+  geom_jitter() +
+  ggtitle("Does Bruise/Bleed vs. Cap Shape") +
+  xlab("Does Bruise or Bleed") +
+  ylab("Cap Shape Type") +
+  theme(plot.title = element_text(face="bold")) +
+  scale_color_discrete(labels=c('Edible','Poisonous')) +
+  scale_y_discrete(labels=c("bell","conical","flat","others","spherical","sunken","convex")) +
+  scale_x_discrete(labels=c("no","yes"))
+
+
+ggplot(mushrooms,aes(x=gill.attachment,y=cap.shape,col=class)) +
+  geom_jitter() +
+  ggtitle("Gill Attachment vs. Cap Shape") +
+  xlab("Gill Attachment Type") +
+  ylab("Cap Shape Type") +
+  theme(plot.title = element_text(face="bold")) +
+  scale_color_discrete(labels=c('Edible','Poisonous')) +
+  scale_y_discrete(labels=c("bell","conical","flat","others","spherical","sunken","convex")) +
+  scale_x_discrete(labels=c("unknown","adnate","decurrent","free","none","pores","sinute","adnexed")) +
+  theme(axis.text.x = element_text(angle = 90,hjust=1,vjust=0))
+
+
+ggplot(mushrooms,aes(x=gill.spacing,y=cap.shape,col=class)) +
+  geom_jitter() +
+  ggtitle("Gill Spacing vs. Cap Shape") +
+  xlab("Gill Spacing") +
+  ylab("Cap Shape Type") +
+  theme(plot.title = element_text(face="bold")) +
+  scale_color_discrete(labels=c('Edible','Poisonous')) +
+  scale_y_discrete(labels=c("bell","conical","flat","others","spherical","sunken","convex")) +
+  scale_x_discrete(labels=c("unknown","close","distant","none"))
+
+
+ggplot(mushrooms,aes(x=gill.color,y=cap.shape,col=class)) +
+  geom_jitter() +
+  ggtitle("Gill Color vs. Cap Shape") +
+  xlab("Gill Color") +
+  ylab("Cap Shape Type") +
+  theme(plot.title = element_text(face="bold")) +
+  scale_color_discrete(labels=c('Edible','Poisonous')) +
+  scale_y_discrete(labels=c("bell","conical","flat","others","spherical","sunken","convex")) +
+  scale_x_discrete(labels=c("buff","red","none","gray","black","brown","orange","pink","green","purple","white","yellow")) +
+  theme(axis.text.x = element_text(angle = 90,hjust=1,vjust=0))
+
+
+ggplot(mushrooms,aes(x=stem.root,y=cap.shape,col=class)) +
+  geom_jitter() +
+  ggtitle("Stem Root vs. Cap Shape") +
+  xlab("Stem Root Type") +
+  ylab("Cap Shape Type") +
+  theme(plot.title = element_text(face="bold")) +
+  scale_color_discrete(labels=c('Edible','Poisonous')) +
+  scale_y_discrete(labels=c("bell","conical","flat","others","spherical","sunken","convex")) +
+  scale_x_discrete(labels=c("unknown","bulbous","club","unknown","rooted","swollen"))
+
+
+ggplot(mushrooms,aes(x=stem.surface,y=cap.shape,col=class)) +
+  geom_jitter() +
+  ggtitle("Stem Surface vs. Cap Shape") +
+  xlab("Stem Surface Type") +
+  ylab("Cap Shape Type") +
+  theme(plot.title = element_text(face="bold")) +
+  scale_color_discrete(labels=c('Edible','Poisonous')) +
+  scale_y_discrete(labels=c("bell","conical","flat","others","spherical","sunken","convex")) +
+  scale_x_discrete(labels=c("unknown","none","grooves","shiny","fibrous","silky","smooth","sticky","scaly")) +
+  theme(axis.text.x = element_text(angle = 90,hjust=1,vjust=0))
+
+
+ggplot(mushrooms,aes(x=stem.color,y=cap.shape,col=class)) +
+  geom_jitter() +
+  ggtitle("Stem Color vs. Cap Shape") +
+  xlab("Stem Color") +
+  ylab("Cap Shape Type") +
+  theme(plot.title = element_text(face="bold")) +
+  scale_color_discrete(labels=c('Edible','Poisonous')) +
+  scale_y_discrete(labels=c("bell","conical","flat","others","spherical","sunken","convex")) +
+  scale_x_discrete(labels=c("buff","red","none","gray","black","blue","brown","orange","pink","green","purple","white","yellow")) +
+  theme(axis.text.x = element_text(angle = 90,hjust=1,vjust=0))
+
+
+ggplot(mushrooms,aes(x=veil.type,y=cap.shape,col=class)) +
+  geom_jitter() +
+  ggtitle("Veil Type vs. Cap Shape") +
+  xlab("Veil Type") +
+  ylab("Cap Shape Type") +
+  theme(plot.title = element_text(face="bold")) +
+  scale_color_discrete(labels=c('Edible','Poisonous')) +
+  scale_y_discrete(labels=c("bell","conical","flat","others","spherical","sunken","convex")) +
+  scale_x_discrete(labels=c("partial","universal"))
+
+
+ggplot(mushrooms,aes(x=veil.color,y=cap.shape,col=class)) +
+  geom_jitter() +
+  ggtitle("Veil Color vs. Cap Shape") +
+  xlab("Veil Color") +
+  ylab("Cap Shape Type") +
+  theme(plot.title = element_text(face="bold")) +
+  scale_color_discrete(labels=c('Edible','Poisonous')) +
+  scale_y_discrete(labels=c("bell","conical","flat","others","spherical","sunken","convex")) +
+  scale_x_discrete(labels=c("unknown","red","black","brown","purple","white","yellow"))
+  # theme(axis.text.x = element_text(angle = 90,hjust=1,vjust=0))
+
+
+ggplot(mushrooms,aes(x=has.ring,y=cap.shape,col=class)) +
+  geom_jitter() +
+  ggtitle("Has Ring vs. Cap Shape") +
+  xlab("Has Ring") +
+  ylab("Cap Shape Type") +
+  theme(plot.title = element_text(face="bold")) +
+  scale_color_discrete(labels=c('Edible','Poisonous')) +
+  scale_y_discrete(labels=c("bell","conical","flat","others","spherical","sunken","convex")) +
+  scale_x_discrete(labels=c("no","yes"))
+
+
+ggplot(mushrooms,aes(x=ring.type,y=cap.shape,col=class)) +
+  geom_jitter() +
+  ggtitle("Ring Type vs. Cap Shape") +
+  xlab("Ring Type") +
+  ylab("Cap Shape Type") +
+  theme(plot.title = element_text(face="bold")) +
+  scale_color_discrete(labels=c('Edible','Poisonous')) +
+  scale_y_discrete(labels=c("bell","conical","flat","others","spherical","sunken","convex")) +
+  scale_x_discrete(labels=c("unknown","evanescent","none","grooved","large","moveable","pendant","flaring","zone")) +
+  theme(axis.text.x = element_text(angle = 90,hjust=1,vjust=0))
+
+
+ggplot(mushrooms,aes(x=spore.print.color,y=cap.shape,col=class)) +
+  geom_jitter() +
+  ggtitle("Spore Print Color vs. Cap Shape") +
+  xlab("Spore Print Color") +
+  ylab("Cap Shape Type") +
+  theme(plot.title = element_text(face="bold")) +
+  scale_color_discrete(labels=c('Edible','Poisonous')) +
+  scale_y_discrete(labels=c("bell","conical","flat","others","spherical","sunken","convex")) +
+  scale_x_discrete(labels=c("unknown","gray","black","brown","pink","green","purple","white"))
+  # theme(axis.text.x = element_text(angle = 90,hjust=1,vjust=0))
+
+
+
+ggplot(mushrooms,aes(x=habitat,y=cap.shape,col=class)) +
+  geom_jitter() +
+  ggtitle("Habitat vs. Cap Shape") +
+  xlab("Habitat") +
+  ylab("Cap Shape Type") +
+  theme(plot.title = element_text(face="bold")) +
+  scale_color_discrete(labels=c('Edible','Poisonous')) +
+  scale_y_discrete(labels=c("bell","conical","flat","others","spherical","sunken","convex")) +
+  scale_x_discrete(labels=c("woods","grasses","heaths","leaves","meadows","paths","urban","waste"))
+
+
+
+ggplot(mushrooms,aes(x=season,y=cap.shape,col=class)) +
+  geom_jitter() +
+  ggtitle("Season vs. Cap Shape") +
+  xlab("Seasons") +
+  ylab("Cap Shape Type") +
+  theme(plot.title = element_text(face="bold")) +
+  scale_color_discrete(labels=c('Edible','Poisonous')) +
+  scale_y_discrete(labels=c("bell","conical","flat","others","spherical","sunken","convex")) +
+  scale_x_discrete(labels=c("autumn","spring","summer","winter"))
+
+
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# ANALYSIS SECTION: 
+
+## train & test data 
+```{r}
+set.seed(12)
+
+train <- sample(1:nrow(mushrooms),0.75*nrow(mushrooms))
+
+
+mushrooms_train <- mushrooms[train,]
+mushrooms_test <- mushrooms[-train,]
+
+nrow(mushrooms_train)+nrow(mushrooms_test)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+# TREE based method 
+
+### fitting classification trees 
+```{r}
+tree_mushrooms <- tree(class~.,data = mushrooms_train)
+
+summary(tree_mushrooms)
+
+```
+
+number of terminal nodes = 28
+training error rate = 0.08956
+
+
+```{r}
+plot(tree_mushrooms)
+text(tree_mushrooms,pretty=0)
+title(main="Unpruned Classification Tree")
+
+```
+
+
+
+```{r}
+tree_mushrooms
+```
+
+
+
+
+
+```{r}
+tree_pred <- predict(tree_mushrooms,mushrooms_test,type="class")
+
+table(tree_pred,mushrooms_test$class)
+```
+
+```{r}
+#correct predictions in the test data set
+(6308+7622)/nrow(mushrooms_test)
+
+#wrong pred.
+1-((6308+7622)/nrow(mushrooms_test))
+
+```
+
+91.24% of the test observations are correctly classified (test error rate = 0.08763) 
+
+
+
+
+### prune tree 
+
+
+```{r}
+cv_mushrooms <- cv.tree(tree_mushrooms, FUN=prune.misclass)
+# names(cv_mushrooms)
+cv_mushrooms
+
+```
+
+
+
+```{r}
+# par(mfrow=c(1,2))
+plot(cv_mushrooms$size,cv_mushrooms$dev,type="b",xlab = "Number of Trees",ylab="Test Classification Error")
+# plot(cv_mushrooms$k,cv_mushrooms$dev,type="b")
+
+```
+
+
+```{r}
+prune_mushrooms_misclass <- prune.misclass(tree_mushrooms,best=28)
+plot(prune_mushrooms_misclass)
+text(prune_mushrooms_misclass,pretty=0)
+title(main="Pruned Classification Tree")
+
+```
+
+
+```{r}
+tree_pred2 <- predict(prune_mushrooms_misclass,mushrooms_test,type="class")
+table(tree_pred2,mushrooms_test$class)
+```
+
+```{r}
+#the test observations that are correctly classified
+(6308+7622)/nrow(mushrooms_test)
+
+#test error rate
+1-((6308+7622)/nrow(mushrooms_test))
+```
+91.24% of the test observations are correctly classified (test error rate = 0.08763)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Random Forest 
+
+### bagging 
+
+```{r}
+set.seed(54)
+
+bag_mushrooms <- randomForest(class~.,data = mushrooms_train,mtry=20,importance=TRUE) #mtry=20 indicates all 20 predictors should be considered
+bag_mushrooms
+
+```
+
+
+```{r}
+(20353+25439)/nrow(mushrooms_train)
+
+#training error rate
+1-((20353+25439)/nrow(mushrooms_train))
+```
+
+99.98% of the training observations are correctly classified (training error rate = 0.0002)
+
+
+
+```{r}
+plot(bag_mushrooms)
+```
+
+
+
+```{r}
+tree_pred3 <- predict(bag_mushrooms,mushrooms_test,type="class")
+table(tree_pred3,mushrooms_test$class)
+```
+
+```{r}
+(6825+8440)/nrow(mushrooms_test)
+
+#test error rate
+1-((6825+8440)/nrow(mushrooms_test))
+```
+
+99.98% of the test observations are correctly classified (test error rate = 0.0002)
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+set.seed(73)
+
+bag_mushrooms <- randomForest(class~.,data = mushrooms_train,mtry=20,ntree=28) #28 number of trees
+bag_mushrooms
+
+
+```
+
+```{r}
+plot(bag_mushrooms)
+```
+
+```{r}
+tree_pred4 <- predict(bag_mushrooms,mushrooms_train,type="class")
+table(tree_pred4,mushrooms_train$class)
+```
+
+```{r}
+(20356+25445)/nrow(mushrooms_train)
+```
+
+
+
+
+
+### rf 
+
+
+```{r}
+set.seed(28)
+
+m <- round(sqrt(20),0)
+
+rf_mushrooms <- randomForest(class~.,data = mushrooms_train,mtry=m,importance=TRUE)
+rf_mushrooms
+```
+
+training error rate = 0
+
+
+
+```{r}
+tree_pred5 <- predict(rf_mushrooms,mushrooms_test,type="class")
+table(tree_pred5,mushrooms_test$class)
+```
+
+```{r}
+(6825+8443)/nrow(mushrooms_test)
+```
+
+
+
+
+```{r}
+importance(rf_mushrooms)
+```
+
+
+```{r}
+varImpPlot(rf_mushrooms,main="Variable Importance")
+```
+
+
+
+
+
+
+## Naive Bayes 
+
+```{r}
+nb_fit <- naiveBayes(class~.,data = mushrooms_train)
+# nb_fit
+```
+
+
+```{r}
+nb_class <- predict(nb_fit,mushrooms_test)
+table(nb_class,mushrooms_test$class)
+```
+
+```{r}
+mean(nb_class==mushrooms_test$class)
+
+#test error rate
+1-(mean(nb_class==mushrooms_test$class))
+```
+
+74.28% of test observations are correctly classified (test error rate = 0.25720) 
+
+
+
+
+
+
+
+
+
+
+# Support Vector Machine Classifier 
+
+
+```{r}
+svm_fit <- svm(class~.,data = mushrooms_train,kernel="radial",gamma=1,cost=1)
+```
+
+```{r}
+summary(svm_fit)
+```
+
+number of support vectors = 10274
+(5557,4747)
+
+
+```{r}
+tree_pred6 <- predict(svm_fit,mushrooms_test,type="class")
+table(tree_pred6,mushrooms_test$class)
+```
+
+
+```{r}
+(6823+8443)/nrow(mushrooms_test)
+
+#test error rate
+1-((6823+8443)/nrow(mushrooms_test))
+```
+
+99.99% test observations are correctly classified (test error rate = 0.00013)
+
+
+
+
+
+
+## tune out
+
+
+```{r}
+#NOTICE/CAUTION: this will RUN for APPROX. 2 HOURS 15 MINS plus (depending on PC)
+
+tune_out1 <- tune(svm,class~.,data = mushrooms_train,kernel="radial",cost=c(0.01,0.1,1,5,10))
+```
+
+```{r}
+summary(tune_out1)
+tune_out1$best.performance
+```
+
+
+
+
+
+
+```{r}
+#NOTICE/CAUTION: this will RUN for APPROX. 4 HOURS 30 MINS plus (depending on PC)
+
+tune_out2 <- tune(svm,class~.,data = mushrooms_train,kernel="radial",ranges = list(cost=c(0.01,0.1,1,5),gamma=1))
+```
+
+
+
+
+```{r}
+summary(tune_out2)
+```
+
+
+
+```{r}
+table(true=mushrooms_test$class,pred=predict(tune_out2$best.model,newdata = mushrooms_test))
+```
+
+```{r}
+(6823+8443)/nrow(mushrooms_test)
+
+#test error rate
+1-((6823+8443)/nrow(mushrooms_test))
+```
+
+test error rate = 0.00013 
+
+
+
+
